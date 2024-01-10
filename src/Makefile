@@ -53,13 +53,13 @@ omp:
 
 omp-movie: $(OMP-EXE).movie
 	./$(OMP-EXE).movie 200 500
-	for f in *.gp; do echo "Processing $$f"; gnuplot "$$f"; done
-	ffmpeg -y -i "circles-%05d.png" -vcodec mpeg4 omp-circles.avi
+	for f in omp*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
+	ffmpeg -y -i "omp-circles-%05d.png" -vcodec mpeg4 omp-circles.avi
 
 mpi-movie: $(MPI-EXE).movie
 	./$(MPI-EXE).movie 200 500
-	for f in *.gp; do echo "Processing $$f"; gnuplot "$$f"; done
-	ffmpeg -y -i "circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
+	for f in mpi*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
+	ffmpeg -y -i "mpi-circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
 
 clean:
 	\rm -f $(OMP-EXE) $(MPI-EXE) $(EXE) $(OMP-EXE).movie $(MPI-EXE).movie $(EXE).movie *.o *~ *.gp *.png *.avi

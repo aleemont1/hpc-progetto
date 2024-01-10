@@ -21,18 +21,18 @@
 /***
 % Circles intersection
 % Moreno Marzolla <moreno.marzolla@unibo.it>
-% Last updated on 2023-12-06
+% Last updated on 2023-01-10
 
 This is a serial implementation of the circle intersection program
 described in the specification.
 
 To compile:
 
-        gcc -std=c99 -Wall -Wpedantic circles.c -o circles -lm
+        gcc -std=c99 -fopenmp -Wall -Wpedantic omp-circles.c -o omp-circles -lm
 
 To execute:
 
-        ./circles [ncircles [iterations]]
+        ./omp-circles [ncircles] [iterations]
 
 where `ncircles` is the number of circles, and `iterations` is the
 number of iterations to execute.
@@ -41,20 +41,20 @@ If you want to produce a movie (this is not required, and should be
 avoided when measuring the performance of the parallel versions of
 this program) compile with:
 
-        gcc -std=c99 -Wall -Wpedantic -DMOVIE circles.c -o circles.movie -lm
+        gcc -std=c99 -fopenmp -Wall -Wpedantic -DMOVIE omp-circles.c -o omp-circles.movie -lm
 
 and execute with:
 
-        ./circles.movie 200 500
+        ./omp-circles.movie 200 500
 
-A lot of `circles-xxxxx.gp` files will be produced; these files must
+A lot of `omp-circles-xxxxx.gp` files will be produced; these files must
 be processed using `gnuplot` to create individual frames:
 
-        for f in *.gp; do gnuplot "$f"; done
+        for f in omp-circles-*.gp; do gnuplot "$f"; done
 
-and then assembled to produce the movie `circles.avi`:
+and then assembled to produce the movie `omp-circles.avi`:
 
-        ffmpeg -y -i "circles-%05d.png" -vcodec mpeg4 circles.avi
+        ffmpeg -y -i "omp-circles-%05d.png" -vcodec mpeg4 omp-circles.avi
 
 ***/
 
@@ -93,7 +93,7 @@ float randab(float a, float b)
 
 /**
  * Create and populate the array `circles[]` with randomly placed
- * circls.
+ * circles.
  *
  * Do NOT parallelize this function.
  */
@@ -180,12 +180,12 @@ void move_circles( void )
 void dump_circles( int iterno )
 {
     char fname[64];
-    snprintf(fname, sizeof(fname), "circles-%05d.gp", iterno);
+    snprintf(fname, sizeof(fname), "omp-circles-%05d.gp", iterno);
     FILE *out = fopen(fname, "w");
     const float WIDTH = XMAX - XMIN;
     const float HEIGHT = YMAX - YMIN;
     fprintf(out, "set term png notransparent large\n");
-    fprintf(out, "set output \"circles-%05d.png\"\n", iterno);
+    fprintf(out, "set output \"omp-circles-%05d.png\"\n", iterno);
     fprintf(out, "set xrange [%f:%f]\n", XMIN - WIDTH*.2, XMAX + WIDTH*.2 );
     fprintf(out, "set yrange [%f:%f]\n", YMIN - HEIGHT*.2, YMAX + HEIGHT*.2 );
     fprintf(out, "set size square\n");

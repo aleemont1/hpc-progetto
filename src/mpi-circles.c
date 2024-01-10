@@ -28,11 +28,11 @@ described in the specification.
 
 To compile:
 
-        gcc -std=c99 -Wall -Wpedantic circles.c -o circles -lm
+        mpicc -std=c99 -Wall -Wpedantic circles.c -o circles -lm
 
 To execute:
 
-        ./circles [ncircles [iterations]]
+        ./circles [ncircles] [iterations]
 
 where `ncircles` is the number of circles, and `iterations` is the
 number of iterations to execute.
@@ -41,20 +41,20 @@ If you want to produce a movie (this is not required, and should be
 avoided when measuring the performance of the parallel versions of
 this program) compile with:
 
-        gcc -std=c99 -Wall -Wpedantic -DMOVIE circles.c -o circles.movie -lm
+        mpicc -std=c99 -Wall -Wpedantic -DMOVIE mpi-circles.c -o mpi-circles.movie -lm
 
 and execute with:
 
-        ./circles.movie 200 500
+        ./mpi-circles.movie 200 500
 
-A lot of `circles-xxxxx.gp` files will be produced; these files must
+A lot of `mpi-circles-xxxxx.gp` files will be produced; these files must
 be processed using `gnuplot` to create individual frames:
 
-        for f in *.gp; do gnuplot "$f"; done
+        for f in mpi-circles-*.gp; do gnuplot "$f"; done
 
 and then assembled to produce the movie `circles.avi`:
 
-        ffmpeg -y -i "circles-%05d.png" -vcodec mpeg4 circles.avi
+        ffmpeg -y -i "mpi-circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
 
 ***/
 
@@ -180,12 +180,12 @@ void move_circles( void )
 void dump_circles( int iterno )
 {
     char fname[64];
-    snprintf(fname, sizeof(fname), "circles-%05d.gp", iterno);
+    snprintf(fname, sizeof(fname), "mpi-circles-%05d.gp", iterno);
     FILE *out = fopen(fname, "w");
     const float WIDTH = XMAX - XMIN;
     const float HEIGHT = YMAX - YMIN;
     fprintf(out, "set term png notransparent large\n");
-    fprintf(out, "set output \"circles-%05d.png\"\n", iterno);
+    fprintf(out, "set output \"mpi-circles-%05d.png\"\n", iterno);
     fprintf(out, "set xrange [%f:%f]\n", XMIN - WIDTH*.2, XMAX + WIDTH*.2 );
     fprintf(out, "set yrange [%f:%f]\n", YMIN - HEIGHT*.2, YMAX + HEIGHT*.2 );
     fprintf(out, "set size square\n");
