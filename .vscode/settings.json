@@ -1,3 +1,6 @@
 {
-    "makefile.makefilePath": "./src/Makefile"
+    "makefile.makefilePath": "./src/Makefile",
+    "makefile.configurations": [
+
+    ]
 }

@@ -204,7 +204,7 @@ int main( int argc, char* argv[] )
     int iterations = 20;
 
     if ( argc > 3 ) {
-        fprintf(stderr, "Usage: %s [ncircles [iterations]]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [ncircles] [iterations]\n", argv[0]);
         return EXIT_FAILURE;
     }
 

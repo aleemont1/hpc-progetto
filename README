@@ -2,10 +2,26 @@ Questo archivio contiene il materiale per il progetto del corso di
 High Performance Computing, laurea in Ingegneria e Scienze
 Informatiche, Universita' di Bologna sede di Cesena.
 
-Il file README (questo file) dovra' includere le istruzioni per la
-compilazione e l'esecuzione dei programmi consegnati; per comodita',
-nella directory src/ e' presente un Makefile. Si puo' modificare il
-Makefile fornito, oppure si puo' decidere di non usarlo ed effettuare
-la compilazione in modo manuale. In tal caso specificare in questo
-file i comandi da usare per la compilazione dei programmi.
+Istruzioni di compilazione tramite Makefile:
 
+```make```
+  build both the OpenMP and MPI versions of the program
+
+```make omp```
+   build the OpenMP version of the program
+
+```make mpi```
+   build the MPI version of the program
+
+```make clean```
+   remove all output files and executables
+
+```make omp-movie```
+   compile the executable omp-circles.movie that writes a gnuplot
+   file at each iteration; the executable is run and the output
+   is processed to produce an animation omp-circles.avi
+
+```make mpi-movie```
+   compile the executable mpi-circles.movie that writes a gnuplot
+   file at each iteration; the executable is run and the output
+   is processed to produce an animation mpi-circles.avi
