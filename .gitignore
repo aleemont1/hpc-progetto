@@ -1,3 +1,6 @@
-/src/*.gp
-/src/*.png
-/src/*.avi
+src/*.gp
+src/*.png
+src/*.avi
+src/*.movie
+src/mpi-circles
+src/omp-circles
