@@ -1,0 +1,8 @@
+/.vscode
+!/src
+/src/*.gp
+/src/*.png
+/src/*.avi
+!LICENSE
+!README*
+!Relazione.odt
