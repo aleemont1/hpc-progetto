@@ -31,10 +31,10 @@ CC:=gcc
 MPICC:=mpicc
 OMP-EXE:=omp-circles
 MPI-EXE:=mpi-circles
-CFLAGS=-std=c99 -Wall -Wpedantic
+CFLAGS=-std=c99 -Wall -Wpedantic -Wextra
 OMP-CFLAGS:=$(CFLAGS) -fopenmp
 LDLIBS+=-lm
-OMP_NUM_THREADS:=6
+OMP_N_THR:=8
 
 ALL: omp mpi
 
@@ -53,12 +53,12 @@ omp:
 	$(CC) $(OMP-CFLAGS) $(OMP-EXE).c -o $(OMP-EXE) $(LDLIBS)
 
 omp-movie: $(OMP-EXE).movie
-	OMP_NUM_THREADS=$(OMP_NUM_THREADS) ./$(OMP-EXE).movie 100 300
+	OMP_NUM_THREADS=$(OMP_N_THR) ./$(OMP-EXE).movie 1000 500
 	for f in omp*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
 	ffmpeg -y -i "omp-circles-%05d.png" -vcodec mpeg4 omp-circles.avi
 
 mpi-movie: $(MPI-EXE).movie
-	./$(MPI-EXE).movie 200 500
+	./$(MPI-EXE).movie 1000 500
 	for f in mpi*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
 	ffmpeg -y -i "mpi-circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
 

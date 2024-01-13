@@ -49,7 +49,7 @@ Istruzioni di compilazione tramite Makefile:
    file at each iteration; the executable is run and the output
    is processed to produce an animation omp-circles.avi.\
    (This action runs the `omp.movie` target and processes the output through `gnuplot` and `ffmpeg`, automagically).\
-   *Note: the execution is run on 6 threads by default.*
+   *Note: the execution is run on 8 threads by default. Set the OMP_N_THR variable to change this option*
 
 - **`make mpi-movie`**\
    compile the executable mpi-circles.movie that writes a gnuplot
