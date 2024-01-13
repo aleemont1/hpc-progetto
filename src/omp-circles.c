@@ -132,7 +132,7 @@ void reset_displacements(void)
 int compute_forces(void)
 {
     int n_intersections = 0;
-#pragma omp parallel for reduction(+ : n_intersections) collapse(2)
+#pragma omp parallel for reduction(+ : n_intersections) collapse(2) default(none) shared(circles, ncircles, EPSILON, K)
     for (int i = 0; i < ncircles; i++)
     {
         for (int j = i + 1; j < ncircles; j++)
@@ -144,8 +144,7 @@ int compute_forces(void)
             if (dist < Rsum - EPSILON)
             {
                 const float overlap = Rsum - dist;
-                assert(overlap > 0.0);
-                // avoid division by zero
+                assert(overlap > 0.0); // avoid division by zero
                 const float overlap_x = overlap / (dist + EPSILON) * deltax;
                 const float overlap_y = overlap / (dist + EPSILON) * deltay;
                 circles[i].dx -= overlap_x / K;
