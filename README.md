@@ -20,7 +20,7 @@ Istruzioni di compilazione tramite Makefile:
    build the OpenMP version of the program with the MOVIE flag
    enabled. It produces an executable named 'omp-circles.movie' which,
    when executed, will produce a number of `omp-circles-xxxxx.gp` files. The files can be processed
-   through the `gnuplot` application to create single frames: \
+   through the `gnuplot` application to create single frames:
    ```
    for f in omp-circles-*.gp; do gnuplot "$f"; done
    ```
@@ -34,7 +34,7 @@ Istruzioni di compilazione tramite Makefile:
    build the OpenMP version of the program with the MOVIE flag
    enabled. It produces an executable named `mpi-circles.movie` which,
    when executed, will produce a number of `mpi-circles-xxxxx.gp` files. The files can be processed
-   through the `gnuplot` application to create single frames: \
+   through the `gnuplot` application to create single frames:
    ```
    for f in mpi-circles-*.gp; do gnuplot "$f"; done
    ```
@@ -49,7 +49,7 @@ Istruzioni di compilazione tramite Makefile:
    file at each iteration; the executable is run and the output
    is processed to produce an animation omp-circles.avi.\
    (This action runs the `omp.movie` target and processes the output through `gnuplot` and `ffmpeg`, automagically).\
-   *Note: the execution is run on 8 threads by default. Set the OMP_N_THR variable to change this option*
+   *Note: the execution is run on 8 threads by default. Set the OMP_NUM_THREADS variable to change this option (e.g. `make omp-movie OMP_NUM_THREADS=6`)*
 
 - **`make mpi-movie`**\
    compile the executable mpi-circles.movie that writes a gnuplot
