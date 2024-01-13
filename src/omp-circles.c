@@ -19,12 +19,12 @@
  ****************************************************************************/
 
 /***
-% Circles intersection
-% Moreno Marzolla <moreno.marzolla@unibo.it>
-% Last updated on 2023-01-10
+% Circles intersection (OpenMP version)
+% Alessandro Monticelli - 0001028456
+% Last updated on 2023-01-13
 
-This is a serial implementation of the circle intersection program
-described in the specification.
+This is a parallel implementation of the circle intersection program
+described in the specification, enforicing the OpenMP parallelization paradigm.
 
 To compile:
 
@@ -132,7 +132,7 @@ void reset_displacements(void)
 int compute_forces(void)
 {
     int n_intersections = 0;
-#pragma omp parallel for reduction(+ : n_intersections) collapse(2) default(none) shared(circles, ncircles, EPSILON, K)
+#pragma omp parallel for collapse(2) reduction(+ : n_intersections) default(shared)
     for (int i = 0; i < ncircles; i++)
     {
         for (int j = i + 1; j < ncircles; j++)
