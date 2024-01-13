@@ -34,7 +34,7 @@ MPI-EXE:=mpi-circles
 CFLAGS=-std=c99 -Wall -Wpedantic
 OMP-CFLAGS:=$(CFLAGS) -fopenmp
 LDLIBS+=-lm
-OMP_NUM_THREADS:=12
+OMP_NUM_THREADS:=6
 
 ALL: omp mpi
 
