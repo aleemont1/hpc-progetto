@@ -132,6 +132,12 @@ void reset_displacements(void)
 int compute_forces(void)
 {
     int n_intersections = 0;
+/**
+ * The following pragma directive parallelizes the for loops.
+ * All the variables can be safely shared, since they different iterations
+ * of the loop access different memory locations (i.e. different circles) and
+ * the other variables are read-only (i.e. EPSILON and K)
+ */
 #pragma omp parallel for collapse(2) reduction(+ : n_intersections) default(shared)
     for (int i = 0; i < ncircles; i++)
     {
