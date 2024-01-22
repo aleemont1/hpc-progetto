@@ -53,7 +53,7 @@ omp:
 	$(CC) $(OMP-CFLAGS) $(OMP-EXE).c -o $(OMP-EXE) $(LDLIBS)
 
 omp-movie: $(OMP-EXE).movie
-	OMP_NUM_THREADS=$(OMP_NUM_THREADS) ./$(OMP-EXE).movie 1000 500
+	OMP_NUM_THREADS=$(OMP_NUM_THREADS) ./$(OMP-EXE).movie 100 100
 	for f in omp*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
 	ffmpeg -y -i "omp-circles-%05d.png" -vcodec mpeg4 omp-circles.avi
 
