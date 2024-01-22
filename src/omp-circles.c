@@ -132,32 +132,35 @@ void reset_displacements(void)
 int compute_forces(void)
 {
     int n_intersections = 0;
-/**
- * The following pragma directive parallelizes the for loops.
- * All the variables can be safely shared, since they different iterations
- * of the loop access different memory locations (i.e. different circles) and
- * the other variables are read-only (i.e. EPSILON and K)
- */
+    /**
+     * The following pragma directive parallelizes the for loops.
+     * All the variables can be safely shared, since they different iterations
+     * of the loop access different memory locations (i.e. different circles) and
+     * the other variables are read-only (i.e. EPSILON and K)
+     */
 #pragma omp parallel for collapse(2) reduction(+ : n_intersections) default(shared)
     for (int i = 0; i < ncircles; i++)
     {
-        for (int j = i + 1; j < ncircles; j++)
+        for (int j = 0; j < ncircles; j++)
         {
-            const float deltax = circles[j].x - circles[i].x;
-            const float deltay = circles[j].y - circles[i].y;
-            const float dist = hypotf(deltax, deltay);
-            const float Rsum = circles[i].r + circles[j].r;
-            if (dist < Rsum - EPSILON)
+            if (j > i)
             {
-                const float overlap = Rsum - dist;
-                assert(overlap > 0.0); // avoid division by zero
-                const float overlap_x = overlap / (dist + EPSILON) * deltax;
-                const float overlap_y = overlap / (dist + EPSILON) * deltay;
-                circles[i].dx -= overlap_x / K;
-                circles[i].dy -= overlap_y / K;
-                circles[j].dx += overlap_x / K;
-                circles[j].dy += overlap_y / K;
-                n_intersections++;
+                const float deltax = circles[j].x - circles[i].x;
+                const float deltay = circles[j].y - circles[i].y;
+                const float dist = hypotf(deltax, deltay);
+                const float Rsum = circles[i].r + circles[j].r;
+                if (dist < Rsum - EPSILON)
+                {
+                    const float overlap = Rsum - dist;
+                    assert(overlap > 0.0); // avoid division by zero
+                    const float overlap_x = overlap / (dist + EPSILON) * deltax;
+                    const float overlap_y = overlap / (dist + EPSILON) * deltay;
+                    circles[i].dx -= overlap_x / K;
+                    circles[i].dy -= overlap_y / K;
+                    circles[j].dx += overlap_x / K;
+                    circles[j].dy += overlap_y / K;
+                    n_intersections++;
+                }
             }
         }
     }
