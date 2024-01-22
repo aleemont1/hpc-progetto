@@ -2,5 +2,12 @@
     "makefile.makefilePath": "./src/Makefile",
     "makefile.configurations": [
 
+    ],
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/aleemont/uni/hpc/progetto/MonticelliAlessandro/MonticelliAlessandro",
+            "binaryPath": "/home/aleemont/uni/hpc/progetto/MonticelliAlessandro/MonticelliAlessandro/omp-circles",
+            "binaryArgs": []
+        }
     ]
 }
