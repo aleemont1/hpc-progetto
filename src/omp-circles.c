@@ -21,7 +21,7 @@
 /***
 % Circles intersection (OpenMP version)
 % Alessandro Monticelli - 0001028456
-% Last updated on 2023-01-13
+% Last updated on 04-07-2024
 
 This is a parallel implementation of the circle intersection program
 described in the specification, enforicing the OpenMP parallelization paradigm.
@@ -138,7 +138,7 @@ int compute_forces(void)
      * of the loop access different memory locations (i.e. different circles) and
      * the other variables are read-only (i.e. EPSILON and K)
      */
-#pragma omp parallel for collapse(2) reduction(+ : n_intersections) default(shared)
+#pragma omp parallel for schedule(dynamic, ncircles / omp_get_num_threads()) collapse(2) reduction(+ : n_intersections)
     for (int i = 0; i < ncircles; i++)
     {
         for (int j = 0; j < ncircles; j++)
@@ -155,9 +155,13 @@ int compute_forces(void)
                     assert(overlap > 0.0); // avoid division by zero
                     const float overlap_x = overlap / (dist + EPSILON) * deltax;
                     const float overlap_y = overlap / (dist + EPSILON) * deltay;
+#pragma omp atomic
                     circles[i].dx -= overlap_x / K;
+#pragma omp atomic
                     circles[i].dy -= overlap_y / K;
+#pragma omp atomic
                     circles[j].dx += overlap_x / K;
+#pragma omp atomic
                     circles[j].dy += overlap_y / K;
                     n_intersections++;
                 }
