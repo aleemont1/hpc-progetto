@@ -59,6 +59,7 @@ and then assembled to produce the movie `circles.avi`:
 ***/
 
 #include "hpc.h"
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -200,8 +201,12 @@ void dump_circles( int iterno )
 
 int main( int argc, char* argv[] )
 {
+    MPI_Init(&argc, &argv);
     int n = 10000;
     int iterations = 20;
+    int size, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if ( argc > 3 ) {
         fprintf(stderr, "Usage: %s [ncircles [iterations]]\n", argv[0]);
@@ -236,6 +241,6 @@ int main( int argc, char* argv[] )
     printf("Elapsed time: %f\n", elapsed_prog);
 
     free(circles);
-
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }
