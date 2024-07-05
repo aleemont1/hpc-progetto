@@ -19,20 +19,24 @@
  ****************************************************************************/
 
 /***
-% Circles intersection
-% Moreno Marzolla <moreno.marzolla@unibo.it>
-% Last updated on 2023-12-06
+% Circles intersection (MPI version)
+% Alessandro Monticelli - 0001028456
+% Last updated on 04-07-2024
 
-This is a serial implementation of the circle intersection program
-described in the specification.
+This is a parallel implementation of the circle intersection program
+described in the specifications, using the MPI parallelization paradigm.
+
+
+NOTE> A Makefile is provided, read that for compilation instructions.
+If you want to compile manually, follow the instructions below.
 
 To compile:
 
-        mpicc -std=c99 -Wall -Wpedantic circles.c -o circles -lm
+        mpicc -std=c99 -Wall -Wpedantic mpi-circles.c -o mpi-circles -lm
 
 To execute:
 
-        ./circles [ncircles] [iterations]
+        mpirun mpi-circles [ncircles] [iterations]
 
 where `ncircles` is the number of circles, and `iterations` is the
 number of iterations to execute.
@@ -45,7 +49,7 @@ this program) compile with:
 
 and execute with:
 
-        ./mpi-circles.movie 200 500
+        mpirun mpi-circles.movie 200 500
 
 A lot of `mpi-circles-xxxxx.gp` files will be produced; these files must
 be processed using `gnuplot` to create individual frames:
@@ -130,19 +134,15 @@ void reset_displacements(void)
  * overlapping pairs of circles (each overlapping pair must be counted
  * only once).
  */
-int compute_forces(void)
+int compute_forces(int start, int end)
 {
     int n_intersections = 0;
-    for (int i = 0; i < ncircles; i++)
+    for (int i = start; i < end; i++)
     {
         for (int j = i + 1; j < ncircles; j++)
         {
             const float deltax = circles[j].x - circles[i].x;
             const float deltay = circles[j].y - circles[i].y;
-            /* hypotf(x,y) computes sqrtf(x*x + y*y) avoiding
-               overflow. This function is defined in <math.h>, and
-               should be available also on CUDA. In case of troubles,
-               it is ok to use sqrtf(x*x + y*y) instead. */
             const float dist = hypotf(deltax, deltay);
             const float Rsum = circles[i].r + circles[j].r;
             if (dist < Rsum - EPSILON)
@@ -150,7 +150,6 @@ int compute_forces(void)
                 n_intersections++;
                 const float overlap = Rsum - dist;
                 assert(overlap > 0.0);
-                // avoid division by zero
                 const float overlap_x = overlap / (dist + EPSILON) * deltax;
                 const float overlap_y = overlap / (dist + EPSILON) * deltay;
                 circles[i].dx -= overlap_x / K;
@@ -209,12 +208,8 @@ void dump_circles(int iterno)
 
 int main(int argc, char *argv[])
 {
-    MPI_Init(&argc, &argv);
     int n = 10000;
     int iterations = 20;
-    int size, rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (argc > 3)
     {
@@ -232,7 +227,23 @@ int main(int argc, char *argv[])
         iterations = atoi(argv[2]);
     }
 
-    init_circles(n);
+    MPI_Init(&argc, &argv);
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (rank == 0)
+    {
+        init_circles(n);
+    }
+
+    MPI_Bcast(&ncircles, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (rank != 0)
+    {
+        circles = (circle_t *)malloc(ncircles * sizeof(*circles));
+    }
+    MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+
     const double tstart_prog = hpc_gettime();
 #ifdef MOVIE
     dump_circles(0);
@@ -241,18 +252,41 @@ int main(int argc, char *argv[])
     {
         const double tstart_iter = hpc_gettime();
         reset_displacements();
-        const int n_overlaps = compute_forces();
+
+        int start = (rank * ncircles) / size;
+        int end = ((rank + 1) * ncircles) / size;
+
+        int local_overlaps = compute_forces(start, end);
+
+        int total_overlaps;
+        MPI_Reduce(&local_overlaps, &total_overlaps, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+        // Gathering the displacements from all processes
+        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, circles, ncircles / size * sizeof(circle_t), MPI_BYTE, MPI_COMM_WORLD);
+
         move_circles();
+
+        // Broadcasting updated positions to all processes
+        MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+
         const double elapsed_iter = hpc_gettime() - tstart_iter;
+        if (rank == 0)
+        {
+            printf("Iteration %d of %d, %d overlaps (%f s)\n", it + 1, iterations, total_overlaps, elapsed_iter);
 #ifdef MOVIE
-        dump_circles(it + 1);
+            dump_circles(it + 1);
 #endif
-        printf("Iteration %d of %d, %d overlaps (%f s)\n", it + 1, iterations, n_overlaps, elapsed_iter);
+        }
     }
+
     const double elapsed_prog = hpc_gettime() - tstart_prog;
-    printf("Elapsed time: %f\n", elapsed_prog);
+    if (rank == 0)
+    {
+        printf("Elapsed time: %f\n", elapsed_prog);
+    }
 
     free(circles);
     MPI_Finalize();
+
     return EXIT_SUCCESS;
 }
