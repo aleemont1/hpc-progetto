@@ -26,5 +26,7 @@ jobs:
 
       - name: make omp
         run: make omp
+        working-directory: src
       - name: make mpi
         run: make mpi
+        working-directory: src
