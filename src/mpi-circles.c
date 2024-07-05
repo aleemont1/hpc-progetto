@@ -139,23 +139,26 @@ int compute_forces(int start, int end)
     int n_intersections = 0;
     for (int i = start; i < end; i++)
     {
-        for (int j = i + 1; j < ncircles; j++)
-        {
-            const float deltax = circles[j].x - circles[i].x;
-            const float deltay = circles[j].y - circles[i].y;
-            const float dist = hypotf(deltax, deltay);
-            const float Rsum = circles[i].r + circles[j].r;
-            if (dist < Rsum - EPSILON)
-            {
-                n_intersections++;
-                const float overlap = Rsum - dist;
-                assert(overlap > 0.0);
-                const float overlap_x = overlap / (dist + EPSILON) * deltax;
-                const float overlap_y = overlap / (dist + EPSILON) * deltay;
-                circles[i].dx -= overlap_x / K;
-                circles[i].dy -= overlap_y / K;
-                circles[j].dx += overlap_x / K;
-                circles[j].dy += overlap_y / K;
+        for (int j = 0; j < ncircles; j++)
+        { // Consider all pairs
+            if (i != j)
+            { // Ensure no self-interaction
+                const float deltax = circles[j].x - circles[i].x;
+                const float deltay = circles[j].y - circles[i].y;
+                const float dist = hypotf(deltax, deltay);
+                const float Rsum = circles[i].r + circles[j].r;
+                if (dist < Rsum - EPSILON)
+                {
+                    n_intersections++;
+                    const float overlap = Rsum - dist;
+                    assert(overlap > 0.0);
+                    const float overlap_x = overlap / (dist + EPSILON) * deltax;
+                    const float overlap_y = overlap / (dist + EPSILON) * deltay;
+                    circles[i].dx -= overlap_x / K;
+                    circles[i].dy -= overlap_y / K;
+                    circles[j].dx += overlap_x / K;
+                    circles[j].dy += overlap_y / K;
+                }
             }
         }
     }
@@ -227,66 +230,95 @@ int main(int argc, char *argv[])
         iterations = atoi(argv[2]);
     }
 
+    // Initialize MPI
     MPI_Init(&argc, &argv);
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    // Initialize circles and other variables
     if (rank == 0)
     {
         init_circles(n);
     }
 
-    MPI_Bcast(&ncircles, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    // Allocate memory for circles in all processes
     if (rank != 0)
     {
-        circles = (circle_t *)malloc(ncircles * sizeof(*circles));
+        circles = (circle_t *)malloc(n * sizeof(*circles));
+        assert(circles != NULL);
     }
-    MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
-
-    const double tstart_prog = hpc_gettime();
 #ifdef MOVIE
-    dump_circles(0);
+    if (rank == 0)
+    {
+        dump_circles(0);
+    }
 #endif
+    const double tstart_prog = hpc_gettime();
+
     for (int it = 0; it < iterations; it++)
     {
         const double tstart_iter = hpc_gettime();
-        reset_displacements();
+        if (rank == 0)
+        {
+            reset_displacements();
+        }
 
-        int start = (rank * ncircles) / size;
-        int end = ((rank + 1) * ncircles) / size;
+        // Broadcast circle data to all processes
+        MPI_Bcast(circles, n * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-        int local_overlaps = compute_forces(start, end);
+        // Determine workload for each process
+        int local_start = (rank * n) / size;
+        int local_end = ((rank + 1) * n) / size;
 
+        // Compute forces locally
+        int local_overlaps = compute_forces(local_start, local_end);
+
+        // Gather results from all processes
         int total_overlaps;
         MPI_Reduce(&local_overlaps, &total_overlaps, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-        // Gathering the displacements from all processes
-        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, circles, ncircles / size * sizeof(circle_t), MPI_BYTE, MPI_COMM_WORLD);
+        // Gather displacements from all processes
+        circle_t *local_displacements = (circle_t *)calloc(n, sizeof(circle_t));
+        for (int i = local_start; i < local_end; i++)
+        {
+            local_displacements[i].dx = circles[i].dx;
+            local_displacements[i].dy = circles[i].dy;
+        }
 
-        move_circles();
+        MPI_Reduce(rank == 0 ? MPI_IN_PLACE : local_displacements, local_displacements, n * sizeof(circle_t), MPI_BYTE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-        // Broadcasting updated positions to all processes
-        MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
-
-        const double elapsed_iter = hpc_gettime() - tstart_iter;
         if (rank == 0)
         {
-            printf("Iteration %d of %d, %d overlaps (%f s)\n", it + 1, iterations, total_overlaps, elapsed_iter);
+            // Copy the displacements back to the original array
+            for (int i = 0; i < n; i++)
+            {
+                circles[i].dx = local_displacements[i].dx;
+                circles[i].dy = local_displacements[i].dy;
+            }
+
+            move_circles();
+            const double elapsed_iter = hpc_gettime() - tstart_iter;
 #ifdef MOVIE
             dump_circles(it + 1);
 #endif
+            printf("Iteration %d of %d, %d overlaps (%f s)\n", it + 1, iterations, total_overlaps, elapsed_iter);
         }
+
+        free(local_displacements);
     }
 
-    const double elapsed_prog = hpc_gettime() - tstart_prog;
     if (rank == 0)
     {
+        const double elapsed_prog = hpc_gettime() - tstart_prog;
         printf("Elapsed time: %f\n", elapsed_prog);
+        free(circles);
+    }
+    else
+    {
+        free(circles);
     }
 
-    free(circles);
     MPI_Finalize();
-
     return EXIT_SUCCESS;
 }
