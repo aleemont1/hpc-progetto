@@ -1,0 +1,30 @@
+name: HPC Workflow
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mpi4py/setup-mpi@v1
+
+      - name: Setup GCC (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install gcc@11
+          echo "CC=/usr/local/bin/gcc-11" >> $GITHUB_ENV
+          echo "MPICC=/usr/local/bin/mpicc" >> $GITHUB_ENV
+
+      - name: make omp
+        run: make omp
+      - name: make mpi
+        run: make mpi
