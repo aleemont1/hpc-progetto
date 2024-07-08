@@ -24,7 +24,7 @@
 # This software comes with NO WARRANTY and is delivered AS IS.
 #
 # Credits: prof. Moreno Marzolla (moreno.marzolla@unibo.it)
-PROG=./mpi-circles
+PROG=./src/mpi-circles
 
 if [ ! -f "$PROG" ]; then
     echo

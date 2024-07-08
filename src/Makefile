@@ -31,7 +31,7 @@ CC:=gcc
 MPICC:=mpicc
 OMP-EXE:=omp-circles
 MPI-EXE:=mpi-circles
-CFLAGS=-std=c99 -Wall -Wpedantic -Wextra -O3
+CFLAGS=-std=c99 -Wall -Wpedantic -Wextra 
 OMP-CFLAGS:=$(CFLAGS) -fopenmp
 LDLIBS+=-lm
 OMP_NUM_THREADS:=12

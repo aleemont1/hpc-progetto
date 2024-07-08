@@ -22,7 +22,7 @@
 # Ultimo aggiornamento 2023-10-04
 # Moreno Marzolla (moreno.marzolla@unibo.it)
 
-PROG=./mpi-circles
+PROG=./src/mpi-circles
 
 if [ ! -f "$PROG" ]; then
     echo

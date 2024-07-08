@@ -26,7 +26,7 @@
 This is a parallel implementation of the circle intersection program
 described in the specifications, using the OpenMP parallelization paradigm.
 
-NOTE> A Makefile is provided, read that for compilation instructions.
+NOTE> A Makefile is provided, read the README for compilation instructions.
 If you want to compile manually, follow the instructions below.
 
 To compile:
