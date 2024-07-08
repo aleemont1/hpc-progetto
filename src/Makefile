@@ -53,12 +53,14 @@ omp:
 	$(CC) $(OMP-CFLAGS) $(OMP-EXE).c -o $(OMP-EXE) $(LDLIBS)
 
 omp-movie: $(OMP-EXE).movie
-	OMP_NUM_THREADS=$(OMP_NUM_THREADS) ./$(OMP-EXE).movie 1000 500
+	rm -f omp*.gp
+	OMP_NUM_THREADS=$(OMP_NUM_THREADS) ./$(OMP-EXE).movie 300 100
 	for f in omp*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
 	ffmpeg -y -i "omp-circles-%05d.png" -vcodec mpeg4 omp-circles.avi
 
 mpi-movie: $(MPI-EXE).movie
-	mpirun $(MPI-EXE).movie 1000 500
+	rm -f mpi*.gp
+	mpirun $(MPI-EXE).movie 300 100
 	for f in mpi*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
 	ffmpeg -y -i "mpi-circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
 
