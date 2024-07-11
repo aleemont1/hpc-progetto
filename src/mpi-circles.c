@@ -21,11 +21,10 @@
 /***
 % Circles intersection (MPI version)
 % Alessandro Monticelli - 0001028456
-% Last updated on 04-07-2024
+% Last updated on 11-07-2024
 
 This is a parallel implementation of the circle intersection program
 described in the specifications, using the MPI parallelization paradigm.
-
 
 NOTE> A Makefile is provided, read the README for compilation instructions.
 If you want to compile manually, follow the instructions below.
