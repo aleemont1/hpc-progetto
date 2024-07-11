@@ -5,3 +5,4 @@ src/mpi-circles
 src/omp-circles
 src/.vscode
 **/*.png
+*lock*
