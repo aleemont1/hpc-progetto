@@ -1,8 +1,4 @@
-Questo archivio contiene il materiale per il progetto del corso di
-High Performance Computing, laurea in Ingegneria e Scienze
-Informatiche, Universita' di Bologna sede di Cesena.
-
-Istruzioni di compilazione tramite Makefile:
+Compiling instructions through Makefile.
 
 - **`make`**\
   build both the OpenMP and MPI versions of the program
