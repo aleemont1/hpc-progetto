@@ -240,6 +240,7 @@ int main(int argc, char *argv[])
         iterations = atoi(argv[2]);
     }
 
+    /* Initialize MPI */
     MPI_Init(&argc, &argv);
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -250,6 +251,8 @@ int main(int argc, char *argv[])
         init_circles(n);
     }
 
+    /* Broadcasting the number of circles and the circles array
+     * to all processes to allocate the memory for the circles.*/
     MPI_Bcast(&ncircles, 1, MPI_INT, 0, MPI_COMM_WORLD);
     int start = (rank * ncircles) / size;
     int end = ((rank + 1) * ncircles) / size;
@@ -271,8 +274,9 @@ int main(int argc, char *argv[])
 
         int local_overlaps = compute_forces(start, end);
         int total_overlaps;
+        /* Calculate the number of all the overlaps into the root process. */
         MPI_Reduce(&local_overlaps, &total_overlaps, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-        // Gathering the displacements from all processes
+        /* Gather the updated circles for all processes to move them correctly. */
         MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, circles, ncircles / size * sizeof(circle_t), MPI_BYTE, MPI_COMM_WORLD);
         move_circles(start, end);
 
