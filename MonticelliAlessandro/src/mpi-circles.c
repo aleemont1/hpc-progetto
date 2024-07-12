@@ -178,9 +178,9 @@ int compute_forces(int start, int end)
  * Move the circles to a new position according to the forces acting
  * on each one.
  */
-void move_circles()
+void move_circles(int start, int end)
 {
-    for (int i = 0; i < ncircles; i++)
+    for (int i = start; i < end; i++)
     {
         circles[i].x += circles[i].dx;
         circles[i].y += circles[i].dy;
@@ -277,8 +277,8 @@ int main(int argc, char *argv[])
         MPI_Reduce(&local_overlaps, &total_overlaps, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
         /* Gather the updated circles for all processes to move them correctly. */
         MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, circles, ncircles / size * sizeof(circle_t), MPI_BYTE, MPI_COMM_WORLD);
-        move_circles();
-        MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+        move_circles(start, end);
+
         const double elapsed_iter = hpc_gettime() - tstart_iter;
         if (rank == 0)
         {

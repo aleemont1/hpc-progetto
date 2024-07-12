@@ -19,23 +19,23 @@
  ****************************************************************************/
 
 /***
-% Circles intersection (MPI version)
+% Circles intersection (OpenMP version)
 % Alessandro Monticelli - 0001028456
-% Last updated on 11-07-2024
+% Last updated on 04-07-2024
 
 This is a parallel implementation of the circle intersection program
-described in the specifications, using the MPI parallelization paradigm.
+described in the specifications, using the OpenMP parallelization paradigm.
 
 NOTE> A Makefile is provided, read the README for compilation instructions.
 If you want to compile manually, follow the instructions below.
 
 To compile:
 
-        mpicc -std=c99 -Wall -Wpedantic mpi-circles.c -o mpi-circles -lm
+        gcc -std=c99 -fopenmp -Wall -Wpedantic omp-circles.c -o omp-circles -lm
 
 To execute:
 
-        mpirun mpi-circles [ncircles] [iterations]
+        ./omp-circles [ncircles] [iterations]
 
 where `ncircles` is the number of circles, and `iterations` is the
 number of iterations to execute.
@@ -44,30 +44,28 @@ If you want to produce a movie (this is not required, and should be
 avoided when measuring the performance of the parallel versions of
 this program) compile with:
 
-        mpicc -std=c99 -Wall -Wpedantic -DMOVIE mpi-circles.c -o mpi-circles.movie -lm
+        gcc -std=c99 -fopenmp -Wall -Wpedantic -DMOVIE omp-circles.c -o omp-circles.movie -lm
 
 and execute with:
 
-        mpirun mpi-circles.movie 200 500
+        ./omp-circles.movie 200 500
 
-A lot of `mpi-circles-xxxxx.gp` files will be produced; these files must
+A lot of `omp-circles-xxxxx.gp` files will be produced; these files must
 be processed using `gnuplot` to create individual frames:
 
-        for f in mpi-circles-*.gp; do gnuplot "$f"; done
+        for f in omp-circles-*.gp; do gnuplot "$f"; done
 
-and then assembled to produce the movie `circles.avi`:
+and then assembled to produce the movie `omp-circles.avi`:
 
-        ffmpeg -y -i "mpi-circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
+        ffmpeg -y -i "omp-circles-%05d.png" -vcodec mpeg4 omp-circles.avi
 
 ***/
 
 #include "hpc.h"
-#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#include <string.h>
 
 typedef struct
 {
@@ -99,7 +97,7 @@ float randab(float a, float b)
 
 /**
  * Create and populate the array `circles[]` with randomly placed
- * circls.
+ * circles.
  *
  * Do NOT parallelize this function.
  */
@@ -121,9 +119,9 @@ void init_circles(int n)
 /**
  * Set all displacements to zero.
  */
-void reset_displacements(int start, int end)
+void reset_displacements(void)
 {
-    for (int i = start; i < end; i++)
+    for (int i = 0; i < ncircles; i++)
     {
         circles[i].dx = circles[i].dy = 0.0;
     }
@@ -134,40 +132,42 @@ void reset_displacements(int start, int end)
  * overlapping pairs of circles (each overlapping pair must be counted
  * only once).
  */
-int compute_forces(int start, int end)
+int compute_forces(void)
 {
     int n_intersections = 0;
-    for (int i = start; i < end; i++)
+    /**
+     * The following pragma directive parallelizes the for loops.
+     * All the variables can be safely shared, since they different iterations
+     * of the loop access different memory locations (i.e. different circles) and
+     * the other variables are read-only (i.e. EPSILON and K)
+     */
+#pragma omp parallel for schedule(dynamic, ncircles / omp_get_num_threads()) collapse(2) reduction(+ : n_intersections)
+    for (int i = 0; i < ncircles; i++)
     {
         for (int j = 0; j < ncircles; j++)
         {
-            if (i == j)
-                continue;
-            const float deltax = circles[j].x - circles[i].x;
-            const float deltay = circles[j].y - circles[i].y;
-            const float dist = hypotf(deltax, deltay);
-            const float Rsum = circles[i].r + circles[j].r;
-            if (dist < Rsum - EPSILON)
+            if (j > i)
             {
-                n_intersections++;
-                const float overlap = Rsum - dist;
-                assert(overlap > 0.0);
-                float overlap_x, overlap_y;
-                if (dist < EPSILON)
+                const float deltax = circles[j].x - circles[i].x;
+                const float deltay = circles[j].y - circles[i].y;
+                const float dist = hypotf(deltax, deltay);
+                const float Rsum = circles[i].r + circles[j].r;
+                if (dist < Rsum - EPSILON)
                 {
-                    // If the distance is very small, distribute the overlap equally in an arbitrary direction
-                    overlap_x = overlap / sqrtf(2.0);
-                    overlap_y = overlap / sqrtf(2.0);
+                    const float overlap = Rsum - dist;
+                    assert(overlap > 0.0); // avoid division by zero
+                    const float overlap_x = overlap / (dist + EPSILON) * deltax;
+                    const float overlap_y = overlap / (dist + EPSILON) * deltay;
+#pragma omp atomic
+                    circles[i].dx -= overlap_x / K;
+#pragma omp atomic
+                    circles[i].dy -= overlap_y / K;
+#pragma omp atomic
+                    circles[j].dx += overlap_x / K;
+#pragma omp atomic
+                    circles[j].dy += overlap_y / K;
+                    n_intersections++;
                 }
-                else
-                {
-                    overlap_x = overlap / dist * deltax;
-                    overlap_y = overlap / dist * deltay;
-                }
-                circles[i].dx -= overlap_x / K;
-                circles[i].dy -= overlap_y / K;
-                circles[j].dx += overlap_x / K;
-                circles[j].dy += overlap_y / K;
             }
         }
     }
@@ -178,7 +178,7 @@ int compute_forces(int start, int end)
  * Move the circles to a new position according to the forces acting
  * on each one.
  */
-void move_circles()
+void move_circles(void)
 {
     for (int i = 0; i < ncircles; i++)
     {
@@ -199,12 +199,12 @@ void move_circles()
 void dump_circles(int iterno)
 {
     char fname[64];
-    snprintf(fname, sizeof(fname), "mpi-circles-%05d.gp", iterno);
+    snprintf(fname, sizeof(fname), "omp-circles-%05d.gp", iterno);
     FILE *out = fopen(fname, "w");
     const float WIDTH = XMAX - XMIN;
     const float HEIGHT = YMAX - YMIN;
     fprintf(out, "set term png notransparent large\n");
-    fprintf(out, "set output \"mpi-circles-%05d.png\"\n", iterno);
+    fprintf(out, "set output \"omp-circles-%05d.png\"\n", iterno);
     fprintf(out, "set xrange [%f:%f]\n", XMIN - WIDTH * .2, XMAX + WIDTH * .2);
     fprintf(out, "set yrange [%f:%f]\n", YMIN - HEIGHT * .2, YMAX + HEIGHT * .2);
     fprintf(out, "set size square\n");
@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
 
     if (argc > 3)
     {
-        fprintf(stderr, "Usage: %s [ncircles [iterations]]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [ncircles] [iterations]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -239,28 +239,7 @@ int main(int argc, char *argv[])
         iterations = atoi(argv[2]);
     }
 
-    /* Initialize MPI */
-    MPI_Init(&argc, &argv);
-    int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    if (rank == 0)
-    {
-        init_circles(n);
-    }
-
-    /* Broadcasting the number of circles and the circles array
-     * to all processes to allocate the memory for the circles.*/
-    MPI_Bcast(&ncircles, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    int start = (rank * ncircles) / size;
-    int end = ((rank + 1) * ncircles) / size;
-    if (rank != 0)
-    {
-        circles = (circle_t *)malloc(ncircles * sizeof(*circles));
-    }
-    MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
-
+    init_circles(n);
     const double tstart_prog = hpc_gettime();
 #ifdef MOVIE
     dump_circles(0);
@@ -268,35 +247,19 @@ int main(int argc, char *argv[])
     for (int it = 0; it < iterations; it++)
     {
         const double tstart_iter = hpc_gettime();
-
-        reset_displacements(start, end);
-
-        int local_overlaps = compute_forces(start, end);
-        int total_overlaps;
-        /* Calculate the number of all the overlaps into the root process. */
-        MPI_Reduce(&local_overlaps, &total_overlaps, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-        /* Gather the updated circles for all processes to move them correctly. */
-        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, circles, ncircles / size * sizeof(circle_t), MPI_BYTE, MPI_COMM_WORLD);
+        reset_displacements();
+        const int n_overlaps = compute_forces();
         move_circles();
-        MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
         const double elapsed_iter = hpc_gettime() - tstart_iter;
-        if (rank == 0)
-        {
-            printf("Iteration %d of %d, %d overlaps (%f s)\n", it + 1, iterations, total_overlaps, elapsed_iter);
 #ifdef MOVIE
-            dump_circles(it + 1);
+        dump_circles(it + 1);
 #endif
-        }
+        printf("Iteration %d of %d, %d overlaps (%f s)\n", it + 1, iterations, n_overlaps, elapsed_iter);
     }
-
     const double elapsed_prog = hpc_gettime() - tstart_prog;
-    if (rank == 0)
-    {
-        printf("Elapsed time: %f\n", elapsed_prog);
-    }
+    printf("Elapsed time: %f\n", elapsed_prog);
 
     free(circles);
-    MPI_Finalize();
 
     return EXIT_SUCCESS;
 }
