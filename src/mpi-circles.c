@@ -277,7 +277,11 @@ int main(int argc, char *argv[])
         MPI_Reduce(&local_overlaps, &total_overlaps, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
         /* Gather the updated circles for all processes to move them correctly. */
         MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, circles, ncircles / size * sizeof(circle_t), MPI_BYTE, MPI_COMM_WORLD);
-        move_circles();
+        if(rank == 0)
+        {
+        	move_circles();	
+        }
+        /* Distribute the updated circles array */
         MPI_Bcast(circles, ncircles * sizeof(circle_t), MPI_BYTE, 0, MPI_COMM_WORLD);
         const double elapsed_iter = hpc_gettime() - tstart_iter;
         if (rank == 0)

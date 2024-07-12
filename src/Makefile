@@ -60,7 +60,7 @@ omp-movie: $(OMP-EXE).movie
 
 mpi-movie: $(MPI-EXE).movie
 	rm -f mpi*.gp
-	mpirun $(MPI-EXE).movie 1000 300
+	mpirun $(MPI-EXE).movie 1100 300
 	for f in mpi*.gp; do echo "Processing $$f"; gnuplot "$$f"; done
 	ffmpeg -y -i "mpi-circles-%05d.png" -vcodec mpeg4 mpi-circles.avi
 
